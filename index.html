@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FlowTrack — Personal Finance</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4e8ef5">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FlowTrack">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Clash+Display:wght@400;500;600;700&family=Satoshi:wght@300;400;500;700&display=swap');
 
@@ -1651,3 +1657,54 @@ function initMonthSelects() {
 </script>
 </body>
 </html>
+<script>
+// ── PWA: register service worker for offline + installability ──
+if ('serviceWorker' in navigator) {
+  const swCode = `
+    const CACHE = 'flowtrack-v1';
+    self.addEventListener('install', e => {
+      e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./', './index.html'])));
+    });
+    self.addEventListener('fetch', e => {
+      e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+    });
+  `;
+  const blob = new Blob([swCode], {type: 'application/javascript'});
+  const swUrl = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swUrl).catch(() => {});
+}
+
+// ── PWA: inject manifest so browser treats this as installable ──
+const manifest = {
+  name: 'FlowTrack',
+  short_name: 'FlowTrack',
+  description: 'Personal Finance Manager',
+  start_url: './',
+  display: 'standalone',
+  background_color: '#0b0e18',
+  theme_color: '#4e8ef5',
+  orientation: 'portrait-primary',
+  icons: [
+    { src: 'https://img.icons8.com/fluency/192/financial-growth.png', sizes: '192x192', type: 'image/png' },
+    { src: 'https://img.icons8.com/fluency/512/financial-growth.png', sizes: '512x512', type: 'image/png' }
+  ]
+};
+const mBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+const mUrl = URL.createObjectURL(mBlob);
+const link = document.createElement('link');
+link.rel = 'manifest'; link.href = mUrl;
+document.head.appendChild(link);
+
+// ── Install prompt button (shown when browser fires beforeinstallprompt) ──
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const btn = document.createElement('button');
+  btn.textContent = '📲 Install App';
+  btn.className = 'btn btn-success';
+  btn.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9998;box-shadow:0 4px 20px rgba(0,0,0,.4);';
+  btn.onclick = () => { deferredPrompt.prompt(); btn.remove(); };
+  document.body.appendChild(btn);
+});
+</script>
